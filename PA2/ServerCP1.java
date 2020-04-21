@@ -120,11 +120,11 @@ public class ServerCP1 {
 					// System.out.println("Encrypted nonce: " + encryptedNonce);
 
 					/* send cert */
-					byte[] certData = Files.readAllBytes(certPath);	
+					byte[] certificate = Files.readAllBytes(certPath);	
 					// toClient.writeInt(2);	
-					toClient.writeInt(certData.length);
-					toClient.write(certData);	
-					// System.out.println(certData);		
+					toClient.writeInt(certificate.length);
+					toClient.write(certificate);	
+					// System.out.println(certificate);		
 					// System.out.println("Encrypted nonce and cert sent");
 
 					// ANCHOR receiving file from client
