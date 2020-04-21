@@ -208,8 +208,9 @@ public class ClientCP1 {
 					testString += EncryptandDecrypt.decryption(encryptedBuffer, "private");
 					fileEnded = numBytes < 117;
 					toServer.writeInt(3);
+					toServer.writeInt(encryptedBuffer.length);
 					toServer.writeInt(numBytes);
-					toServer.write(fromFileBuffer);
+					toServer.write(encryptedBuffer);
 					toServer.flush();
 				}
 				System.out.println(testString);

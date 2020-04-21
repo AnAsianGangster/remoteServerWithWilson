@@ -139,12 +139,14 @@ public class ServerCP1 {
 					bufferedFileOutputStream = new BufferedOutputStream(fileOutputStream);
 
 				} else if (packetType == 3) {
+					int encryptedBufferSize = fromClient.readInt();
 					int numBytes = fromClient.readInt();
-					byte[] block = new byte[numBytes];
-					fromClient.readFully(block, 0, numBytes);
-					testString3 += new String(block);
+					byte[] block = new byte[encryptedBufferSize];
+					fromClient.readFully(block, 0, encryptedBufferSize);
+					byte[] decryptedBlock = EncryptandDecrypt.decryptionByte(block, "private");
+					testString3 += new String(decryptedBlock);
 					if (numBytes > 0) {
-						bufferedFileOutputStream.write(block, 0, numBytes);
+						bufferedFileOutputStream.write(decryptedBlock, 0, numBytes);
 						bufferedFileOutputStream.flush();
 					}
 					if (numBytes < 117) {
