@@ -4,9 +4,15 @@ import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.Socket;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
@@ -17,38 +23,39 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.Scanner;
 
+import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.KeyGenerator;
+import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 
 import java.lang.ProcessBuilder.Redirect;
 
 public class ClientCP2 {
 
-
 	private static final String publicKeyPath = "./certMac/public_key.der";
 	private static final String privateKeyPath = "./certMac/private_key.der";
-	public static void main(String[] args) {
+
+	public static void main(String[] args) throws IllegalBlockSizeException, BadPaddingException, InvalidKeyException,
+			NoSuchAlgorithmException, NoSuchPaddingException {
 
 		String filename = null;
-    	// if (args.length > 0) filename = args[0];
+		// if (args.length > 0) filename = args[0];
 
 		String serverAddress = "localhost";
-		if (args.length > 1) filename = args[1];
+		if (args.length > 1)
+			filename = args[1];
 
 		int port = 4321;
-		if (args.length > 2) port = Integer.parseInt(args[2]);
-
-		int numBytes = 0;
+		if (args.length > 2)
+			port = Integer.parseInt(args[2]);
 
 		Socket clientSocket = null;
 
-        DataOutputStream toServer = null;
-        DataInputStream fromServer = null;
+		DataOutputStream toServer = null;
+		DataInputStream fromServer = null;
 
-		FileInputStream fileInputStream = null;
-		BufferedInputStream bufferedFileInputStream = null;
-		
 		InputStream fis = null;
 		CertificateFactory cf = null;
 		X509Certificate CAcert = null;
@@ -57,8 +64,29 @@ public class ClientCP2 {
 
 		PublicKey serverPublicKey = null;
 
-
 		long timeStarted = System.nanoTime();
+
+		// NOTE DES key
+		KeyGenerator keyGen = KeyGenerator.getInstance("DES");
+		SecretKey desKey = keyGen.generateKey();
+
+		// Cipher cipher = Cipher.getInstance("DES/ECB/PKCS5Padding");
+
+		// cipher init
+		// String data = "test data here";
+		// cipher.init(Cipher.ENCRYPT_MODE, key);
+
+		// byte[] byteData = data.getBytes();
+
+		// byte[] encryptedBytesArray = cipher.doFinal(byteData);
+		// System.out.println(encryptedBytesArray.length);
+
+		// decipher init
+		// cipher.init(Cipher.DECRYPT_MODE, key);
+
+		// byte[] decryptedBytesArray = cipher.doFinal(encryptedBytesArray);
+		// System.out.println(new String(decryptedBytesArray) + "###########################");
+		// System.out.println(key.getEncoded());
 
 		try {
 
@@ -71,7 +99,7 @@ public class ClientCP2 {
 
 			fis = new FileInputStream("./cert/cacse.crt");
 			cf = CertificateFactory.getInstance("X.509");
-			CAcert =(X509Certificate)cf.generateCertificate(fis);
+			CAcert = (X509Certificate) cf.generateCertificate(fis);
 			PublicKey caPublicKey = CAcert.getPublicKey();
 
 			byte[] encryptedNonce = null;
@@ -98,7 +126,7 @@ public class ClientCP2 {
 			toServer.writeInt(terminalOutput.trim().getBytes().length);
 			toServer.write(terminalOutput.trim().getBytes());
 
-			while(true) {
+			while (true) {
 				int packetType = fromServer.readInt();
 
 				if (packetType == 0) {
@@ -107,7 +135,7 @@ public class ClientCP2 {
 					fromServer.readFully(serverReply);
 					String decryptedReply = EncryptandDecrypt.decryption(serverReply, "public");
 					// System.out.println("Decrypted: " + decryptedReply);
-					
+
 					toServer.writeInt(1);
 					SecureRandom sr = new SecureRandom();
 					byte[] nonce = new byte[64];
@@ -145,212 +173,135 @@ public class ClientCP2 {
 
 					if (decryptedNoncebase64format.equals(nonce64Format)) {
 						System.out.println("The server is correct!");
-						enterShell = true;
-
-						/* generate session key */
-						SecretKey sessionKey = KeyGenerator.getInstance("DES").generateKey();
-						String encodedKey = Base64.getEncoder().encodeToString(sessionKey.getEncoded());
-						byte[] encodedKeyByte = encodedKey.trim().getBytes();
-						toServer.writeInt(encodedKeyByte.length);
-						toServer.write(encodedKeyByte);
-						System.out.println("Session key sent!");
-
-						System.out.println("Use 'UPLOAD' to start transferring files!");
-						System.out.println(">>> ");
-						Scanner sc = new Scanner(System.in);
-						String userOutput = null;
-						String userInput = sc.nextLine();
-						while (!userInput.equals("exit")) {
-							System.out.println(">>> ");
-							System.out.println("Here we go again");
-							userOutput = userInput;
-							if (userOutput.length() >= 6 && userOutput.substring(0, 6).equals("UPLOAD")) {
-								String contents = userOutput.substring(7);
-								ArrayList<String> files = new ArrayList<String>(Arrays.asList(contents.split(" ")));
-			
-								for (int j = 0; j < files.size(); j++) {
-									System.out.println(files.get(j));
-								}
-			
-								// Send the filename
-								String f = files.get(0);
-								System.out.println("files: " + f);
-								toServer.writeInt(2);
-								toServer.writeInt(f.getBytes().length);
-								toServer.write(f.getBytes());
-								// toServer.flush();
-						
-								// Open the file
-								fileInputStream = new FileInputStream(f);
-								bufferedFileInputStream = new BufferedInputStream(fileInputStream);
-						
-								byte [] fromFileBuffer = new byte[117];
-								Cipher cipher = Cipher.getInstance("DES");
-								cipher.init(Cipher.ENCRYPT_MODE, sessionKey);
-								byte[] encryptedfromFileBuffer = null;
-						
-								// Send the file
-								for (boolean fileEnded = false; !fileEnded;) {
-									encryptedfromFileBuffer = cipher.doFinal(fromFileBuffer);
-									numBytes = bufferedFileInputStream.read(encryptedfromFileBuffer);
-									fileEnded = numBytes < 117;
-
-						
-									toServer.writeInt(3);
-									toServer.writeInt(numBytes);
-									toServer.write(encryptedfromFileBuffer);
-									toServer.flush();
-								}
-								System.out.println("Sending file...");
-								System.out.println(">>> ");
-								userInput = sc.nextLine();
-								userOutput = userInput;
-							} else {
-								System.out.println("Invalid command!");
-								System.out.println(">>> ");
-								userInput = sc.nextLine();
-
-							}
-						}
-
-						/* exit the services */
-						String exitMessage = "exit";
-						byte[] exitMessageByte = exitMessage.trim().getBytes();
-						if (fromServer != null) {
-							toServer.writeInt(4);
-							toServer.writeInt(exitMessageByte.length);
-							toServer.write(exitMessageByte);
-							if (bufferedFileInputStream != null) {
-								bufferedFileInputStream.close();
-							}
-							if (fileInputStream != null) {
-								fileInputStream.close();
-							}
-							break;
-						} 
+						ClientCP2.Upload(toServer, serverPublicKey, desKey);
 					} else {
 						System.out.println("The server is not valid!");
 						break;
 					}
 				}
 			}
-
-			/*
-			System.out.println("Use 'UPLOAD' to start transferring files!");
-			System.out.println(">>> ");
-			Scanner sc = new Scanner(System.in);
-			String userOutput = null;
-			String userInput = sc.nextLine();
-			while (!userInput.equals("exit")) {
-				System.out.println(">>> ");
-				userOutput = userInput;
-				if (userOutput.length() >= 7 && userOutput.substring(0, 6).equals("UPLOAD")) {
-					String contents = userOutput.substring(7);
-					ArrayList<String> files = new ArrayList<String>(Arrays.asList(contents.split(" ")));
-
-					for (int j = 0; j < files.size(); j++) {
-						System.out.println(files.get(j));
-					}
-
-					// Send the filename
-					String f = files.get(0);
-					System.out.println("files: " + f);
-					toServer.writeInt(2);
-					toServer.writeInt(f.getBytes().length);
-					toServer.write(f.getBytes());
-					// toServer.flush();
-			
-					// Open the file
-					fileInputStream = new FileInputStream(f);
-					bufferedFileInputStream = new BufferedInputStream(fileInputStream);
-			
-					byte [] fromFileBuffer = new byte[117];
-					Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
-					PublicKey serverPublicKey = PublicKeyReader.get("./cert/public_key.der");
-					cipher.init(Cipher.ENCRYPT_MODE, serverPublicKey);
-					byte[] encryptedfromFileBuffer = cipher.doFinal(fromFileBuffer);
-			
-					// Send the file
-					for (boolean fileEnded = false; !fileEnded;) {
-						numBytes = bufferedFileInputStream.read(encryptedfromFileBuffer);
-						fileEnded = numBytes < 117;
-			
-						toServer.writeInt(3);
-						toServer.writeInt(numBytes);
-						toServer.write(encryptedfromFileBuffer);
-						toServer.flush();
-					}
-					System.out.println(encryptedfromFileBuffer);
-					System.out.println("Sending file...");
-					bufferedFileInputStream.close();
-					fileInputStream.close();
-					break;
-				} else {
-					System.out.println("Invalid command!");
-					System.out.println(">>> ");
-					userInput = sc.nextLine();
-				}
-			}
-			*/
 			System.out.println("Closing connection...");
 
-		} catch (Exception e) {e.printStackTrace();}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 
 		long timeTaken = System.nanoTime() - timeStarted;
-		System.out.println("Program took: " + timeTaken/1000000.0 + "ms to run");
-	}
-}
-
-/*
-class ClientProcess extends Thread {
-	String f;
-	String serverAddress = "localhost";
-	int port = 4321;
-	Socket clientSocket = null;
-	DataOutputStream toServer = null;
-	DataInputStream fromServer = null;
-	int numBytes = 0;
-
-	FileInputStream fileInputStream = null;
-	BufferedInputStream bufferedFileInputStream = null;
-	ClientProcess(String f, Socket clientSocket, DataOutputStream toServer, DataInputStream fromServer, int numBytes) {
-		this.f = f;
-		this.clientSocket = clientSocket;
-		this.toServer = toServer;
-		this.fromServer = fromServer;
-		this.numBytes = numBytes;
+		System.out.println("Program took: " + timeTaken / 1000000.0 + "ms to run");
 	}
 
-	@Override
-	public void run() {
-		try {
-			toServer.writeInt(2);
-			toServer.writeInt(f.getBytes().length);
-			toServer.write(f.getBytes());
-			// toServer.flush();
-	
-			// Open the file
-			fileInputStream = new FileInputStream(f);
-			bufferedFileInputStream = new BufferedInputStream(fileInputStream);
-	
-			byte [] fromFileBuffer = new byte[117];
-	
-			// Send the file
-			for (boolean fileEnded = false; !fileEnded;) {
-				numBytes = bufferedFileInputStream.read(fromFileBuffer);
-				fileEnded = numBytes < 117;
-	
-				toServer.writeInt(3);
-				toServer.writeInt(numBytes);
-				toServer.write(fromFileBuffer);
+	/**
+	 * the shell
+	 * 
+	 * @param toServer
+	 * @param serverPublicKey
+	 * @throws Exception
+	 */
+	public static void Upload(DataOutputStream toServer, PublicKey serverPublicKey, SecretKey desKey) throws Exception {
+		System.out.println("Use 'UPLOAD' to start transferring files! 'EXIT' to exit");
+		System.out.println(">>> ");
+
+		// String encodedKey = Base64.getEncoder().encodeToString(desKey.getEncoded());
+		byte[] encodedKeyByte = desKey.getEncoded();
+		// System.out.println("---->" + new String(encodedKeyByte) + "<----");
+		toServer.writeInt(4);
+		toServer.writeInt(encodedKeyByte.length);
+		toServer.write(encodedKeyByte);
+
+		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+		String userOutput = null;
+		String userInput = br.readLine();
+		while (!userInput.equals("EXIT")) {
+			System.out.println(">>> ");
+			userOutput = userInput;
+			if (userOutput.length() >= 6 && userOutput.substring(0, 6).equals("UPLOAD")) {
+				String contents = userOutput.substring(7);
+				ArrayList<String> files = new ArrayList<String>(Arrays.asList(contents.split(" ")));
+
+				for (int j = 0; j < files.size(); j++) {
+					System.out.println(files.get(j));
+				}
+
+				// Send the filename
+				String f = files.get(0);
+				System.out.println("files: " + f);
 				toServer.flush();
+				toServer.writeInt(2);
+				toServer.writeInt(f.getBytes().length);
+				toServer.write(f.getBytes());
+				// toServer.flush();
+
+				// Open the file
+				FileInputStream fileInputStream = new FileInputStream(f);
+				BufferedInputStream bufferedFileInputStream = new BufferedInputStream(fileInputStream);
+
+				byte[] fromFileBuffer = new byte[117];
+
+				// String fileToSend = readFile(f, Charset.defaultCharset());
+				// TODO fix the key to use the CA key
+				// byte[] encryptedFile = EncryptandDecrypt.encryption(fileToSend, "public");
+				// String dencryptedFile = EncryptandDecrypt.decryption(encryptedFile,
+				// "public");
+				// System.out.println(dencryptedFile);
+				// String testString = "";
+				// Send the file
+				for (boolean fileEnded = false; !fileEnded;) {
+					int numBytes = bufferedFileInputStream.read(fromFileBuffer);
+					byte[] encryptedBuffer = ClientEncryptionByte(fromFileBuffer, "public", desKey);
+					// testString += EncryptandDecrypt.decryption(encryptedBuffer, "private");
+					fileEnded = numBytes < 117;
+					toServer.writeInt(3);
+					toServer.writeInt(encryptedBuffer.length);
+					toServer.writeInt(numBytes);
+					toServer.write(encryptedBuffer);
+					toServer.flush();
+				}
+				// System.out.println(testString);
+				// System.out.println(fileToSend);
+				// toServer.writeInt(3);
+				// toServer.writeInt(fileToSend.getBytes().length);
+				// toServer.write(fileToSend.getBytes());
+				// toServer.flush();
+				bufferedFileInputStream.close();
+				fileInputStream.close();
+				System.out.println("Sending file...");
+			} else {
+				System.out.println("Invalid command!");
 			}
-			System.out.println("check");
-			bufferedFileInputStream.close();
-			fileInputStream.close();
-		} catch(Exception e) {
-			e.printStackTrace();
+			System.out.println(">>> ");
+			userInput = br.readLine();
+			userOutput = userInput;
+		}
+	}
+
+	static String readFile(String path, Charset encoding) throws IOException {
+		byte[] encoded = Files.readAllBytes(Paths.get(path));
+		return new String(encoded, encoding);
+	}
+
+	private static byte[] ClientEncryptionByte(byte[] inputData, String keyType, SecretKey desKey) throws Exception {
+		final Cipher cipher = Cipher.getInstance("DES/ECB/PKCS5Padding");
+
+		if (keyType == "public") {
+
+			// cipher init
+			cipher.init(Cipher.ENCRYPT_MODE, desKey);
+
+			byte[] encryptedBytesArray = cipher.doFinal(inputData);
+
+			return encryptedBytesArray;
+		} else if (keyType == "private") {
+			// PrivateKey key = PrivateKeyReader.get(privateKeyPath);
+
+			// // cipher init
+			// cipher.init(Cipher.ENCRYPT_MODE, key);
+
+			// byte[] encryptedBytesArray = cipher.doFinal(inputData);
+
+			return null;
+		} else {
+			System.out.println("Invalid key type");
+			return null;
 		}
 	}
 }
-*/

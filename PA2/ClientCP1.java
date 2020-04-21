@@ -200,12 +200,12 @@ public class ClientCP1 {
 				// byte[] encryptedFile = EncryptandDecrypt.encryption(fileToSend, "public");
 				// String dencryptedFile = EncryptandDecrypt.decryption(encryptedFile, "public");
 				// System.out.println(dencryptedFile);
-				String testString = "";
+				// String testString = "";
 				// Send the file
 				for (boolean fileEnded = false; !fileEnded;) {
 					int numBytes = bufferedFileInputStream.read(fromFileBuffer);
-					byte[] encryptedBuffer = EncryptandDecrypt.encryptionByte(fromFileBuffer, "public");
-					testString += EncryptandDecrypt.decryption(encryptedBuffer, "private");
+					byte[] encryptedBuffer = ClientEncryptionByte(fromFileBuffer, "public", serverPublicKey);
+					// testString += EncryptandDecrypt.decryption(encryptedBuffer, "private");
 					fileEnded = numBytes < 117;
 					toServer.writeInt(3);
 					toServer.writeInt(encryptedBuffer.length);
@@ -213,7 +213,7 @@ public class ClientCP1 {
 					toServer.write(encryptedBuffer);
 					toServer.flush();
 				}
-				System.out.println(testString);
+				// System.out.println(testString);
 				// System.out.println(fileToSend);
 				// toServer.writeInt(3);
 				// toServer.writeInt(fileToSend.getBytes().length);
@@ -234,5 +234,31 @@ public class ClientCP1 {
 	static String readFile(String path, Charset encoding) throws IOException {
 		byte[] encoded = Files.readAllBytes(Paths.get(path));
 		return new String(encoded, encoding);
+	}
+
+	private static byte[] ClientEncryptionByte(byte[] inputData, String keyType, PublicKey theKey) throws Exception {
+		final Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+
+		if (keyType == "public") {
+
+			// cipher init
+			cipher.init(Cipher.ENCRYPT_MODE, theKey);
+
+			byte[] encryptedBytesArray = cipher.doFinal(inputData);
+
+			return encryptedBytesArray;
+		} else if (keyType == "private") {
+			PrivateKey key = PrivateKeyReader.get(privateKeyPath);
+
+			// cipher init
+			cipher.init(Cipher.ENCRYPT_MODE, key);
+
+			byte[] encryptedBytesArray = cipher.doFinal(inputData);
+
+			return encryptedBytesArray;
+		} else {
+			System.out.println("Invalid key type");
+			return null;
+		}
 	}
 }

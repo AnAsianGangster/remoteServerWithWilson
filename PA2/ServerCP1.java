@@ -69,7 +69,7 @@ public class ServerCP1 {
 
 				int packetType = fromClient.readInt();
 
-				String testString3 = "";
+				// String testString3 = "";
 				if (packetType == 0) {
 					int numBytes = fromClient.readInt();
 					byte[] clientIP = new byte[numBytes];
@@ -144,7 +144,7 @@ public class ServerCP1 {
 					byte[] block = new byte[encryptedBufferSize];
 					fromClient.readFully(block, 0, encryptedBufferSize);
 					byte[] decryptedBlock = EncryptandDecrypt.decryptionByte(block, "private");
-					testString3 += new String(decryptedBlock);
+					// testString3 += new String(decryptedBlock);
 					if (numBytes > 0) {
 						bufferedFileOutputStream.write(decryptedBlock, 0, numBytes);
 						bufferedFileOutputStream.flush();
@@ -159,7 +159,7 @@ public class ServerCP1 {
 					connectionSocket.close(); 
 					*/
 				}
-				System.out.println(testString3);
+				// System.out.println(testString3);
 			}
 		} catch (Exception e) {e.printStackTrace();}
 
