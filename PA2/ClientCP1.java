@@ -30,6 +30,7 @@ public class ClientCP1 {
 
 	private static final String publicKeyPath = "./certMac/public_key.der";
 	private static final String privateKeyPath = "./certMac/private_key.der";
+	private static String[] userInputToken;
 	public static void main(String[] args) {
 
 		String filename = null;
@@ -172,10 +173,34 @@ public class ClientCP1 {
 		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 		String userOutput = null;
 		String userInput = br.readLine();
+		ArrayList<String> availableFiles = new ArrayList<String>();
+
 		while (!userInput.equals("EXIT")) {
 			System.out.println(">>> ");
 			userOutput = userInput;
-			if (userOutput.length() >= 6 && userOutput.substring(0, 6).equals("UPLOAD")) {
+			
+			userInputToken = userInput.split(" ");
+			// ANCHOR print available files to send
+			ProcessBuilder pb = new ProcessBuilder("/bin/sh", "-c", "ls");
+			// pb.redirectOutput(Redirect.INHERIT);
+			pb.redirectError(Redirect.INHERIT);
+			Process p = pb.start();
+			// save the output
+			// for reading the ouput from stream
+			BufferedReader stdInput = new BufferedReader(new InputStreamReader(p.getInputStream()));
+			String s = null;
+			String terminalOutput = "";
+			while ((s = stdInput.readLine()) != null) {
+				availableFiles.add(s);
+				terminalOutput += s;
+				terminalOutput += '\n';
+			}
+			System.out.println(terminalOutput);
+			
+			if (userOutput.length() >= 6 && userOutput.substring(0, 6).equals("UPLOAD") && Arrays.stream(availableFiles.toArray()).anyMatch(userInputToken[1]::equals)) {
+				// timer start
+				long startTime = System.nanoTime();
+
 				String contents = userOutput.substring(7);
 				ArrayList<String> files = new ArrayList<String>(Arrays.asList(contents.split(" ")));
 
@@ -225,6 +250,11 @@ public class ClientCP1 {
 				bufferedFileInputStream.close();
 				fileInputStream.close();
 				System.out.println("Sending file...");
+				// timer end
+				long endTime = System.nanoTime();
+				System.out.println("\u001B[34m" + "Time" + "\u001B[0m" + " take to upload this file: " + (endTime - startTime)/1000000 + "ms");
+			} else if(userInputToken[0].equals("UPLOAD") && !availableFiles.contains(userInputToken[1])){
+				System.out.println("\u001B[31m" + "Error " + "\u001B[0m" + "File doesn't exits!");
 			} else {
 				System.out.println("Invalid command!");
 			}
