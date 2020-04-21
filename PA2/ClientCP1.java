@@ -4,9 +4,13 @@ import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.Socket;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
@@ -153,6 +157,12 @@ public class ClientCP1 {
 		System.out.println("Program took: " + timeTaken/1000000.0 + "ms to run");
 	}
 
+	/**
+	 * the shell
+	 * @param toServer
+	 * @param serverPublicKey
+	 * @throws Exception
+	 */
 	public static void Upload(DataOutputStream toServer, PublicKey serverPublicKey) throws Exception {
 		System.out.println("Use 'UPLOAD' to start transferring files!");
 		System.out.println(">>> ");
@@ -184,16 +194,30 @@ public class ClientCP1 {
 				BufferedInputStream bufferedFileInputStream = new BufferedInputStream(fileInputStream);
 		
 				byte [] fromFileBuffer = new byte[117];
-		
+				
+				// String fileToSend = readFile(f, Charset.defaultCharset());
+				// TODO fix the key to use the CA key
+				// byte[] encryptedFile = EncryptandDecrypt.encryption(fileToSend, "public");
+				// String dencryptedFile = EncryptandDecrypt.decryption(encryptedFile, "public");
+				// System.out.println(dencryptedFile);
+				String testString = "";
 				// Send the file
 				for (boolean fileEnded = false; !fileEnded;) {
 					int numBytes = bufferedFileInputStream.read(fromFileBuffer);
+					byte[] encryptedBuffer = EncryptandDecrypt.encryptionByte(fromFileBuffer, "public");
+					testString += EncryptandDecrypt.decryption(encryptedBuffer, "private");
 					fileEnded = numBytes < 117;
 					toServer.writeInt(3);
 					toServer.writeInt(numBytes);
 					toServer.write(fromFileBuffer);
 					toServer.flush();
 				}
+				System.out.println(testString);
+				// System.out.println(fileToSend);
+				// toServer.writeInt(3);
+				// toServer.writeInt(fileToSend.getBytes().length);
+				// toServer.write(fileToSend.getBytes());
+				// toServer.flush();
 				bufferedFileInputStream.close();
 				fileInputStream.close();
 				System.out.println("Sending file...");
@@ -204,5 +228,10 @@ public class ClientCP1 {
 			userInput = br.readLine();
 			userOutput = userInput;
 		}
+	}
+	
+	static String readFile(String path, Charset encoding) throws IOException {
+		byte[] encoded = Files.readAllBytes(Paths.get(path));
+		return new String(encoded, encoding);
 	}
 }

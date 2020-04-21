@@ -22,6 +22,7 @@ import java.util.Arrays;
 import java.util.Base64;
 
 import javax.crypto.Cipher;
+import javax.print.DocFlavor.STRING;
 
 public class ServerCP1 {
 
@@ -68,6 +69,7 @@ public class ServerCP1 {
 
 				int packetType = fromClient.readInt();
 
+				String testString3 = "";
 				if (packetType == 0) {
 					int numBytes = fromClient.readInt();
 					byte[] clientIP = new byte[numBytes];
@@ -125,6 +127,7 @@ public class ServerCP1 {
 					// System.out.println(certData);		
 					// System.out.println("Encrypted nonce and cert sent");
 
+					// ANCHOR receiving file from client
 				} else if (packetType == 2) {
 					System.out.println("Receiving files from client...");
 					int numBytes = fromClient.readInt();
@@ -139,7 +142,7 @@ public class ServerCP1 {
 					int numBytes = fromClient.readInt();
 					byte[] block = new byte[numBytes];
 					fromClient.readFully(block, 0, numBytes);
-		
+					testString3 += new String(block);
 					if (numBytes > 0) {
 						bufferedFileOutputStream.write(block, 0, numBytes);
 						bufferedFileOutputStream.flush();
@@ -148,12 +151,13 @@ public class ServerCP1 {
 						if (bufferedFileOutputStream != null) bufferedFileOutputStream.close();
 						if (bufferedFileOutputStream != null) fileOutputStream.close();
 					}
-					/*
+					/* TODO condition for close server
 					fromClient.close();
 					toClient.close();
 					connectionSocket.close(); 
 					*/
 				}
+				System.out.println(testString3);
 			}
 		} catch (Exception e) {e.printStackTrace();}
 
