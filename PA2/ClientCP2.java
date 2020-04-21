@@ -236,7 +236,9 @@ public class ClientCP2 {
 			}
 			System.out.println(terminalOutput);
 
-			if (userOutput.length() >= 6 && userOutput.substring(0, 6).equals("UPLOAD") && Arrays.stream(availableFiles.toArray()).anyMatch(userInputToken[1]::equals)) {
+			if (userInputToken[0].equals("UPLOAD") && userInputToken.length == 1) {
+				System.out.println("\u001B[31m" + "Error " + "\u001B[0m" + ": No file selected!");
+			} else if (userOutput.length() >= 6 && userOutput.substring(0, 6).equals("UPLOAD") && Arrays.stream(availableFiles.toArray()).anyMatch(userInputToken[1]::equals)) {
 				// timer start
 				long startTime = System.nanoTime();
 				String contents = userOutput.substring(7);

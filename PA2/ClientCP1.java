@@ -197,7 +197,9 @@ public class ClientCP1 {
 			}
 			System.out.println(terminalOutput);
 			
-			if (userOutput.length() >= 6 && userOutput.substring(0, 6).equals("UPLOAD") && Arrays.stream(availableFiles.toArray()).anyMatch(userInputToken[1]::equals)) {
+			if(userInputToken[0].equals("UPLOAD") && userInputToken.length == 1){
+				System.out.println("\u001B[31m" + "Error " + "\u001B[0m" + ": No file selected!");
+			} else if (userOutput.length() >= 6 && userOutput.substring(0, 6).equals("UPLOAD") && Arrays.stream(availableFiles.toArray()).anyMatch(userInputToken[1]::equals)) {
 				// timer start
 				long startTime = System.nanoTime();
 
@@ -254,7 +256,7 @@ public class ClientCP1 {
 				long endTime = System.nanoTime();
 				System.out.println("\u001B[34m" + "Time" + "\u001B[0m" + " take to upload this file: " + (endTime - startTime)/1000000 + "ms");
 			} else if(userInputToken[0].equals("UPLOAD") && !availableFiles.contains(userInputToken[1])){
-				System.out.println("\u001B[31m" + "Error " + "\u001B[0m" + "File doesn't exits!");
+				System.out.println("\u001B[31m" + "Error " + "\u001B[0m" + ": File doesn't exits!");
 			} else {
 				System.out.println("Invalid command!");
 			}
