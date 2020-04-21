@@ -95,7 +95,8 @@ public class ClientCP1 {
 			toServer.writeInt(terminalOutput.trim().getBytes().length);
 			toServer.write(terminalOutput.trim().getBytes());
 
-			while(true) {
+			boolean done = false;
+			while(!done) {
 				int packetType = fromServer.readInt();
 
 				if (packetType == 0) {
@@ -142,7 +143,7 @@ public class ClientCP1 {
 
 					if (decryptedNoncebase64format.equals(nonce64Format)) {
 						System.out.println("The server is correct!");
-						ClientCP1.Upload(toServer, serverPublicKey);
+						done = ClientCP1.Upload(toServer, serverPublicKey, clientSocket);
 					} else {
 						System.out.println("The server is not valid!");
 						break;
@@ -163,13 +164,15 @@ public class ClientCP1 {
 	 * @param serverPublicKey
 	 * @throws Exception
 	 */
-	public static void Upload(DataOutputStream toServer, PublicKey serverPublicKey) throws Exception {
+	public static boolean Upload(DataOutputStream toServer, PublicKey serverPublicKey, Socket clientSocket) throws Exception {
+		BufferedInputStream bufferedFileInputStream = null;
+		FileInputStream fileInputStream = null;
 		System.out.println("Use 'UPLOAD' to start transferring files!");
 		System.out.println(">>> ");
 		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 		String userOutput = null;
 		String userInput = br.readLine();
-		while (!userInput.equals("exit")) {
+		while (!userInput.equals("EXIT")) {
 			System.out.println(">>> ");
 			userOutput = userInput;
 			if (userOutput.length() >= 6 && userOutput.substring(0, 6).equals("UPLOAD")) {
@@ -190,8 +193,8 @@ public class ClientCP1 {
 				// toServer.flush();
 		
 				// Open the file
-				FileInputStream fileInputStream = new FileInputStream(f);
-				BufferedInputStream bufferedFileInputStream = new BufferedInputStream(fileInputStream);
+				fileInputStream = new FileInputStream(f);
+				bufferedFileInputStream = new BufferedInputStream(fileInputStream);
 		
 				byte [] fromFileBuffer = new byte[117];
 				
@@ -229,6 +232,8 @@ public class ClientCP1 {
 			userInput = br.readLine();
 			userOutput = userInput;
 		}
+		toServer.writeInt(4);
+		return true;
 	}
 	
 	static String readFile(String path, Charset encoding) throws IOException {

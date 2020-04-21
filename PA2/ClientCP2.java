@@ -126,7 +126,8 @@ public class ClientCP2 {
 			toServer.writeInt(terminalOutput.trim().getBytes().length);
 			toServer.write(terminalOutput.trim().getBytes());
 
-			while (true) {
+			boolean done = false;
+			while (!done) {
 				int packetType = fromServer.readInt();
 
 				if (packetType == 0) {
@@ -173,7 +174,7 @@ public class ClientCP2 {
 
 					if (decryptedNoncebase64format.equals(nonce64Format)) {
 						System.out.println("The server is correct!");
-						ClientCP2.Upload(toServer, serverPublicKey, desKey);
+						done = ClientCP2.Upload(toServer, serverPublicKey, desKey);
 					} else {
 						System.out.println("The server is not valid!");
 						break;
@@ -197,7 +198,7 @@ public class ClientCP2 {
 	 * @param serverPublicKey
 	 * @throws Exception
 	 */
-	public static void Upload(DataOutputStream toServer, PublicKey serverPublicKey, SecretKey desKey) throws Exception {
+	public static boolean Upload(DataOutputStream toServer, PublicKey serverPublicKey, SecretKey desKey) throws Exception {
 		System.out.println("Use 'UPLOAD' to start transferring files! 'EXIT' to exit");
 		System.out.println(">>> ");
 
@@ -272,6 +273,8 @@ public class ClientCP2 {
 			userInput = br.readLine();
 			userOutput = userInput;
 		}
+		toServer.writeInt(5);
+		return true;
 	}
 
 	static String readFile(String path, Charset encoding) throws IOException {

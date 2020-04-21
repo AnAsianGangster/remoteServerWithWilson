@@ -176,6 +176,11 @@ public class ServerCP2 {
 					// System.out.println("---->" + new String(keyByteBuffer) + "<----");
 
 
+				} else if (packetType == 5) {
+					System.out.println("Bye");
+					fromClient.close();
+					toClient.close();
+					connectionSocket.close(); 
 				}
 				// System.out.println(testString3);
 			}

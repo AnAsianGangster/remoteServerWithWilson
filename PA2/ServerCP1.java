@@ -158,6 +158,11 @@ public class ServerCP1 {
 					toClient.close();
 					connectionSocket.close(); 
 					*/
+				} else if (packetType == 4) {
+					System.out.println("Bye");
+					fromClient.close();
+					toClient.close();
+					connectionSocket.close(); 
 				}
 				// System.out.println(testString3);
 			}
